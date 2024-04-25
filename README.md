@@ -72,7 +72,7 @@ $ kubectl get service -A | grep dashboard  # Смотрим порт серви�
 $ kubectl create namespace monitoring
 ```
 
-Cоздание манифестов для развертывания Prometheus и Grafana в новом namespace
+#### Cоздание манифестов для развертывания Prometheus и Grafana в новом namespace
 ### Prometheus
 - Манифест для развертывания Prometheus
 ```bash
@@ -222,6 +222,85 @@ $ kubectl edit service grafana-service -n monitoring
 # Смотрим какой порт присвоился и вставляем minikube ip и порт сервиса в браузер
 $ kubectl get service -n monitoring
 ```
+Логин и пароль по умолчанию: `admin/admin`
+
+
+
+#### Создание namespace "Monitoring"
+```bash
+$ kubectl create namespace monitoring
+```
+
+### Nginx
+- Манифест для развертывания NGINX
+```bash
+$ nano nginx.yml
+```
+
+- Конфиг:
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: web
+  labels:
+    app: nginx
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-pod
+  namespace: web
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+```
+
+- Запускаем сборку:
+```bash
+kubectl apply -f nginx.yml
+```
+
+```bash
+# Делаем чтобы через edit был редактор nano
+$ export EDITOR=nano
+
+# Выбираем сервис, который хотим открыть в Web-интерфейсе
+$ kubectl get services -n web
+
+# Редактируем конфигурации сервиса (Находим строку type: ClusterIP и меняем на type: NodePort)
+$ kubectl edit service nginx-service -n web
+
+# Смотрим какой порт присвоился и вставляем minikube ip и порт сервиса в браузер
+$ kubectl get service -n web
+```
+
+
+
+
+
 
 
 
@@ -230,118 +309,7 @@ $ kubectl get service -n monitoring
 
 ## :three: Запускаем несколько подов `nginx`, `mysql` и `wildfly`. Дополнительно связка `Prometheus Grafana` с помощью чартов
 
-### NGINX
-- Создаем конфиг:
-```bash
-$ nano nginx.yaml
-```
-- Пишем конфиг пода:
-```yml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-pod
-spec:
-  containers:
-  - name: nginx-container
-    image: nginx
-```
-- Запускаем под:
-```bash
-kubectl apply -f nginx.yaml
-```
 
-### WILDFLY
-- Создаем конфиг:
-```bash
-$ nano wildfly.yaml
-```
-- Пишем конфиг пода:
-```yml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: wildfly-pod
-spec:
-  containers:
-  - name: wildfly-container
-    image: jboss/wildfly
-```
-- Запускаем под:
-```bash
-$ kubectl apply -f wildfly.yaml
-```
-
-### MYSQL
-- Создаем конфиг:
-```bash
-$ nano mysql.yaml
-```
-- Пишем конфиг пода:
-```yml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: mysql-pod
-spec:
-  containers:
-  - name: mysql-container
-    image: mysql:8.0
-    env:
-    - name: MYSQL_ROOT_PASSWORD
-      value: {наш пароль}
-```
-- Запускаем под:
-```bash
-$ kubectl apply -f mysql.yaml
-```
-
-### Prometheus Grafana
-- Настройка HELM:
-```bash
-Используем Helm для развертывания
-
-# Скачивание:
-$ wget https://get.helm.sh/helm-v3.9.3-linux-amd64.tar.gz
-
-# Распаковка:
-$ tar xvf helm-v3.9.3-linux-amd64.tar.gz
-
-# Перемещаем файл helm в директорию /usr/local/bin:
-$ sudo mv linux-amd64/helm /usr/local/bin
-
-# Добавляем новый репозиторий чартов:
-$ helm repo add stable https://charts.helm.sh/stable
-
-# Обновляем репозиторий Helm:
-$ helm repo update
-```
-- Установка чартов:
-```bash
-# Установка чартов Prometheus-community:
-$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-
-# Поиск пакета Prometheus в репозитории:
-$ helm search repo prometheus-community
-
-# Установка пакета Prometheus (kube-prometheus-stack) из репозитория prometheus-community:
-$ helm install prometheus prometheus-community/kube-prometheus-stack
-
-# После установки, проверяем статус Minikube:
-$ minikube status
-```
-- Grafana вход в UI:
-```bash
-# Смотрим пароль от пользователя admin для Grafana:
-kubectl get secret prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
-
-# Смотрим ip minikube
-$ minikube ip
-
-# Смотрим порт сервиса
-$ kubectl get service -A | grep grafana
-```
-Вставляем в браузер [http://<ip_minikube>:<port_service>](http://<ip_minikube>:<port_service>)
 
 ---
 
