@@ -226,9 +226,9 @@ $ kubectl get service -n monitoring
 
 
 
-#### Создание namespace "Monitoring"
+#### Создание namespace "Web"
 ```bash
-$ kubectl create namespace monitoring
+$ kubectl create namespace web
 ```
 
 ### Nginx
