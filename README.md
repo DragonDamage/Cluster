@@ -65,11 +65,9 @@ $ kubectl get service -A | grep dashboard  # Смотрим порт серви�
 Вставляем в браузер:  # http://<ip_minikube>:<port_service>
 ```
 
-
-
 ---
 
-Создание namespace "Monitoring"
+#### Создание namespace "Monitoring"
 ```bash
 $ kubectl create namespace monitoring
 ```
@@ -81,12 +79,12 @@ Cоздание манифестов для развертывания Prometheu
 $ nano prometheus.yml
 ```
 
-- Пишем конфиг пода:
+- Конфиг:
 ```yml
 apiVersion: v1
 kind: Service
 metadata:
-  name: prometheus
+  name: prometheus-service
   namespace: monitoring
   labels:
     app: prometheus
@@ -101,7 +99,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: prometheus
+  name: prometheus-pod
   namespace: monitoring
   labels:
     app: prometheus
@@ -116,7 +114,7 @@ spec:
         app: prometheus
     spec:
       containers:
-        - name: prometheus
+        - name: prometheus-container
           image: prom/prometheus:latest
           ports:
             - containerPort: 9090
@@ -128,6 +126,11 @@ spec:
           emptyDir: {}
 ```
 
+- Запускаем сборку:
+```bash
+kubectl apply -f prometheus.yml
+```
+
 ```bash
 # Делаем чтобы через edit был редактор nano
 $ export EDITOR=nano
@@ -136,22 +139,89 @@ $ export EDITOR=nano
 $ kubectl get services -n monitoring
 
 # Редактируем конфигурации сервиса (Находим строку type: ClusterIP и меняем на type: NodePort)
-$ kubectl edit service prometheus -n monitoring
+$ kubectl edit service prometheus-service -n monitoring
 
 # Смотрим какой порт присвоился и вставляем minikube ip и порт сервиса в браузер
 $ kubectl get service -n monitoring
 ```
 
+#### Определение службы (Service)
+- apiVersion: Указывает на версию API, с которой работает данный манифест.
+- kind: Указывает на тип объекта Kubernetes, в данном случае - служба.
+- metadata: Содержит метаданные объекта, такие как имя, пространство имен (namespace) и метки (labels).
+- spec: Содержит спецификацию службы, включая селектор (selector) и порты.
 
+#### Определение развертывания (Deployment)
+- apiVersion: Указывает на версию API, с которой работает данный манифест.
+- kind: Указывает на тип объекта Kubernetes, в данном случае - развертывание.
+- metadata: Содержит метаданные объекта, такие как имя, пространство имен (namespace) и метки (labels).
+- spec: Содержит спецификацию развертывания, включая количество реплик, селектор, шаблон пода и контейнеры.
 
+### Grafana
+- Манифест для развертывания Grafana
+```bash
+$ nano grafana.yml
+```
 
+- Конфиг:
+```yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: monitoring
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: web
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-pod
+  namespace: monitoring
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana-container
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+```
 
+- Запускаем сборку:
+```bash
+kubectl apply -f grafana.yml
+```
 
+```bash
+# Делаем чтобы через edit был редактор nano
+$ export EDITOR=nano
 
+# Выбираем сервис, который хотим открыть в Web-интерфейсе
+$ kubectl get services -n monitoring
 
+# Редактируем конфигурации сервиса (Находим строку type: ClusterIP и меняем на type: NodePort)
+$ kubectl edit service grafana-service -n monitoring
 
-
-
+# Смотрим какой порт присвоился и вставляем minikube ip и порт сервиса в браузер
+$ kubectl get service -n monitoring
+```
 
 
 
